@@ -1,10 +1,13 @@
 import { useState, useRef } from "react";
 import MessageList from "./components/MessageList.jsx";
 import ChatInput from "./components/ChatInput.jsx";
+import SettingsPanel from "./components/SettingsPanel.jsx";
 
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState({ format: "plain", maxTokens: 1024, stopSequences: [], provider: "deepseek" });
   const history = useRef([]);
 
   async function sendMessage(text) {
@@ -26,7 +29,7 @@ export default function App() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed, history: historyWithoutLast }),
+        body: JSON.stringify({ message: trimmed, history: historyWithoutLast, settings }),
       });
 
       const data = await res.json();
@@ -57,7 +60,16 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1>{title}</h1>
+        <button
+          className="settings-toggle"
+          onClick={() => setShowSettings((v) => !v)}
+          title="Settings"
+          aria-label="Toggle settings"
+        >
+          ⚙
+        </button>
       </header>
+      {showSettings && <SettingsPanel settings={settings} onChange={setSettings} />}
       <MessageList messages={messages} isLoading={isLoading} />
       <ChatInput onSend={sendMessage} isLoading={isLoading} />
     </div>
