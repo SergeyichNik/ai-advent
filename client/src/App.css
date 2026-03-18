@@ -383,3 +383,239 @@ body {
 .send-button:not(:disabled):hover {
   background: #1557b0;
 }
+
+/* ── Settings: system prompt ── */
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-system-prompt {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  min-height: 60px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.settings-system-prompt:focus {
+  border-color: #1a73e8;
+}
+
+/* ── Header tabs ── */
+.header-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.header-tab {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  font-size: 0.85rem;
+  font-family: inherit;
+  padding: 4px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.header-tab:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.header-tab--active {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Compare view ── */
+.compare-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.compare-input-area {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.compare-task-input {
+  flex: 1;
+  resize: none;
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  line-height: 1.4;
+  transition: border-color 0.2s;
+}
+
+.compare-task-input:focus {
+  border-color: #1a73e8;
+}
+
+.compare-task-input:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.compare-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 12px;
+  background: #1a73e8;
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.compare-btn:disabled {
+  background: #dadce0;
+  cursor: not-allowed;
+}
+
+.compare-btn:not(:disabled):hover {
+  background: #1557b0;
+}
+
+.compare-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #80868b;
+  font-size: 0.875rem;
+}
+
+.compare-error {
+  color: #c5221f;
+  background: #fce8e6;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .compare-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Compare card ── */
+.compare-card {
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.compare-card--highlighted {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+.compare-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.compare-card-strategy {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #202124;
+}
+
+.compare-card-star {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #fbbc04;
+  padding: 0;
+  line-height: 1;
+  transition: transform 0.1s;
+}
+
+.compare-card-star:hover {
+  transform: scale(1.2);
+}
+
+.compare-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.compare-card-section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #80868b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.compare-card-prompt {
+  font-size: 0.82rem;
+  color: #5f6368;
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 6px 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+.compare-card-reply {
+  font-size: 0.88rem;
+  color: #202124;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+/* ── Compare summary ── */
+.compare-summary {
+  background: #e8f0fe;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  color: #1a73e8;
+}
+
+.compare-summary-label {
+  color: #5f6368;
+}

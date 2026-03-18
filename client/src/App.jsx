@@ -2,12 +2,20 @@ import { useState, useRef } from "react";
 import MessageList from "./components/MessageList.jsx";
 import ChatInput from "./components/ChatInput.jsx";
 import SettingsPanel from "./components/SettingsPanel.jsx";
+import CompareView from "./components/CompareView.jsx";
 
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState({ format: "plain", maxTokens: 1024, stopSequences: [], provider: "deepseek" });
+  const [settings, setSettings] = useState({
+    format: "plain",
+    maxTokens: 1024,
+    stopSequences: [],
+    provider: "deepseek",
+    systemPrompt: "",
+  });
+  const [view, setView] = useState("chat");
   const history = useRef([]);
 
   async function sendMessage(text) {
@@ -60,6 +68,20 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1>{title}</h1>
+        <div className="header-tabs">
+          <button
+            className={`header-tab${view === "chat" ? " header-tab--active" : ""}`}
+            onClick={() => setView("chat")}
+          >
+            Chat
+          </button>
+          <button
+            className={`header-tab${view === "compare" ? " header-tab--active" : ""}`}
+            onClick={() => setView("compare")}
+          >
+            Compare
+          </button>
+        </div>
         <button
           className="settings-toggle"
           onClick={() => setShowSettings((v) => !v)}
@@ -70,8 +92,14 @@ export default function App() {
         </button>
       </header>
       {showSettings && <SettingsPanel settings={settings} onChange={setSettings} />}
-      <MessageList messages={messages} isLoading={isLoading} />
-      <ChatInput onSend={sendMessage} isLoading={isLoading} />
+      {view === "chat" ? (
+        <>
+          <MessageList messages={messages} isLoading={isLoading} />
+          <ChatInput onSend={sendMessage} isLoading={isLoading} />
+        </>
+      ) : (
+        <CompareView settings={settings} />
+      )}
     </div>
   );
 }

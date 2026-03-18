@@ -149,6 +149,17 @@ export default function SettingsPanel({ settings, onChange }) {
           </button>
         </div>
       </div>
+
+      <div className="settings-group">
+        <label className="settings-label">System Prompt</label>
+        <textarea
+          className="settings-system-prompt"
+          placeholder="Optional: define a role or context for the AI..."
+          value={settings.systemPrompt || ''}
+          onChange={e => onChange({ ...settings, systemPrompt: e.target.value })}
+          rows={3}
+        />
+      </div>
     </div>
   );
 }
