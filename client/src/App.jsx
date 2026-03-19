@@ -8,14 +8,27 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState({
-    format: "plain",
-    maxTokens: 1024,
-    stopSequences: [],
-    provider: "deepseek",
-    systemPrompt: "",
-    temperature: 1.0,
+  const [settings, setSettings] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("chat-settings");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      format: "plain",
+      maxTokens: 1024,
+      stopSequences: [],
+      provider: "deepseek",
+      systemPrompt: "",
+      temperature: 1.0,
+    };
   });
+
+  function handleSettingsChange(next) {
+    setSettings(next);
+    try {
+      sessionStorage.setItem("chat-settings", JSON.stringify(next));
+    } catch {}
+  }
   const [view, setView] = useState("chat");
   const history = useRef([]);
 
@@ -92,7 +105,7 @@ export default function App() {
           ⚙
         </button>
       </header>
-      {showSettings && <SettingsPanel settings={settings} onChange={setSettings} />}
+      {showSettings && <SettingsPanel settings={settings} onChange={handleSettingsChange} />}
       {view === "chat" ? (
         <>
           <MessageList messages={messages} isLoading={isLoading} />

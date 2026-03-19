@@ -79,6 +79,7 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const { format = "plain", maxTokens, stopSequences = [], provider = "gemini", systemPrompt, temperature } = settings;
+    console.log(`[/api/chat] provider=${provider} temperature=${temperature}`);
 
     const formatInstruction = FORMAT_INSTRUCTIONS[format];
     const systemInstruction = buildSystemInstruction(null, { systemPrompt }, formatInstruction);

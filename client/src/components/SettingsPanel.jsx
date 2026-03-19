@@ -102,6 +102,7 @@ export default function SettingsPanel({ settings, onChange }) {
 
       <div className="settings-row">
         <label className="settings-label">Temperature <span className="settings-hint">{settings.temperature.toFixed(1)}</span></label>
+        <span className="settings-hint">0</span>
         <input
           type="range"
           className="settings-slider"
@@ -111,6 +112,7 @@ export default function SettingsPanel({ settings, onChange }) {
           value={settings.temperature}
           onChange={(e) => onChange({ ...settings, temperature: Number(e.target.value) })}
         />
+        <span className="settings-hint">2</span>
       </div>
 
       <div className="settings-row settings-row--col">
