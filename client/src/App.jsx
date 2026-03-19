@@ -14,6 +14,7 @@ export default function App() {
     stopSequences: [],
     provider: "deepseek",
     systemPrompt: "",
+    temperature: 1.0,
   });
   const [view, setView] = useState("chat");
   const history = useRef([]);

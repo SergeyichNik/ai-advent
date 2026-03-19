@@ -27,12 +27,13 @@ function toOpenAIHistory(geminiHistory) {
 }
 
 async function callLLM(message, systemInstruction, settings = {}) {
-  const { provider = "gemini", maxTokens, stopSequences = [], format } = settings;
+  const { provider = "gemini", maxTokens, stopSequences = [], format, temperature } = settings;
 
   const generationConfig = {};
   if (maxTokens) generationConfig.maxOutputTokens = maxTokens;
   if (stopSequences.length) generationConfig.stopSequences = stopSequences;
   if (format === "json") generationConfig.responseMimeType = "application/json";
+  if (temperature !== undefined) generationConfig.temperature = temperature;
 
   if (provider === "deepseek") {
     const messages = [];
@@ -44,6 +45,7 @@ async function callLLM(message, systemInstruction, settings = {}) {
       messages,
       ...(maxTokens ? { max_tokens: maxTokens } : {}),
       ...(stopSequences.length ? { stop: stopSequences } : {}),
+      ...(temperature !== undefined ? { temperature } : {}),
     });
     return completion.choices[0].message.content;
   }
@@ -76,7 +78,7 @@ app.post("/api/chat", async (req, res) => {
       return res.status(400).json({ error: "message is required and must be a non-empty string" });
     }
 
-    const { format = "plain", maxTokens, stopSequences = [], provider = "gemini", systemPrompt } = settings;
+    const { format = "plain", maxTokens, stopSequences = [], provider = "gemini", systemPrompt, temperature } = settings;
 
     const formatInstruction = FORMAT_INSTRUCTIONS[format];
     const systemInstruction = buildSystemInstruction(null, { systemPrompt }, formatInstruction);
@@ -99,6 +101,7 @@ app.post("/api/chat", async (req, res) => {
         messages: dsMessages,
         ...(maxTokens ? { max_tokens: maxTokens } : {}),
         ...(stopSequences.length ? { stop: stopSequences } : {}),
+        ...(temperature !== undefined ? { temperature } : {}),
       });
       reply = completion.choices[0].message.content;
     } else {
@@ -106,6 +109,7 @@ app.post("/api/chat", async (req, res) => {
       if (maxTokens) generationConfig.maxOutputTokens = maxTokens;
       if (stopSequences.length) generationConfig.stopSequences = stopSequences;
       if (format === "json") generationConfig.responseMimeType = "application/json";
+      if (temperature !== undefined) generationConfig.temperature = temperature;
 
       const model = genAI.getGenerativeModel({
         model: process.env.GEMINI_MODEL || "gemini-2.5-flash-lite",

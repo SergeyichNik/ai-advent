@@ -100,6 +100,19 @@ export default function SettingsPanel({ settings, onChange }) {
         </select>
       </div>
 
+      <div className="settings-row">
+        <label className="settings-label">Temperature <span className="settings-hint">{settings.temperature.toFixed(1)}</span></label>
+        <input
+          type="range"
+          className="settings-slider"
+          min="0"
+          max="2"
+          step="0.1"
+          value={settings.temperature}
+          onChange={(e) => onChange({ ...settings, temperature: Number(e.target.value) })}
+        />
+      </div>
+
       <div className="settings-row settings-row--col">
         <label className="settings-label">Stop sequences <span className="settings-hint">(max 5)</span></label>
         <div className="stop-seq-suggestions">
