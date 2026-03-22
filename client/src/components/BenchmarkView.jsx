@@ -1,5 +1,6 @@
 import { useState } from "react";
 import BenchmarkCard from "./BenchmarkCard.jsx";
+import BenchmarkVerdict from "./BenchmarkVerdict.jsx";
 
 const IDLE_MODELS = [
   { id: "deepseek-chat",         tier: "weak",   label: "DeepSeek V3" },
@@ -12,6 +13,7 @@ export default function BenchmarkView({ settings }) {
   const [cardStates, setCardStates] = useState({});     // modelId → result | null
   const [loadingModels, setLoadingModels] = useState(new Set());
   const [verdict, setVerdict] = useState(null);
+  const [isJudgeLoading, setIsJudgeLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const isRunning = loadingModels.size > 0;
@@ -22,6 +24,7 @@ export default function BenchmarkView({ settings }) {
     const collected = {};
     setCardStates({});
     setVerdict(null);
+    setIsJudgeLoading(false);
     setError(null);
     setLoadingModels(new Set(IDLE_MODELS.map((m) => m.id)));
 
@@ -62,6 +65,7 @@ export default function BenchmarkView({ settings }) {
       return;
     }
 
+    setIsJudgeLoading(true);
     try {
       const judgeRes = await fetch("/api/benchmark/judge", {
         method: "POST",
@@ -76,7 +80,6 @@ export default function BenchmarkView({ settings }) {
       }
     } catch (err) {
       console.error("[judge error]", err);
-      // Fallback: compute speed/cost winners client-side
       const speedWinner = successful.reduce((a, b) => a.metrics.timeMs < b.metrics.timeMs ? a : b);
       const costWinner  = successful.reduce((a, b) => a.metrics.cost  < b.metrics.cost  ? a : b);
       setVerdict({
@@ -84,6 +87,8 @@ export default function BenchmarkView({ settings }) {
         winners: { speed: speedWinner.model, cost: costWinner.model },
         summary: "Quality evaluation unavailable.",
       });
+    } finally {
+      setIsJudgeLoading(false);
     }
   }
 
@@ -131,23 +136,12 @@ export default function BenchmarkView({ settings }) {
         ))}
       </div>
 
-      {verdict && (
-        <div className="benchmark-verdict">
-          <div className="benchmark-verdict-header">
-            <span className="benchmark-verdict-label">Verdict</span>
-            <div className="benchmark-verdict-scores">
-              {IDLE_MODELS.map((m) =>
-                verdict.scores?.[m.id] !== undefined ? (
-                  <span key={m.id} className="benchmark-verdict-score">
-                    {m.label}: <strong>{verdict.scores[m.id]}/10</strong>
-                  </span>
-                ) : null
-              )}
-            </div>
-          </div>
-          <div className="benchmark-verdict-text">{verdict.summary}</div>
-        </div>
-      )}
+      <BenchmarkVerdict
+        verdict={verdict}
+        isJudgeLoading={isJudgeLoading}
+        cardStates={cardStates}
+        models={IDLE_MODELS}
+      />
     </div>
   );
 }

@@ -781,51 +781,97 @@ body {
   margin-top: auto;
 }
 
-/* ── Benchmark verdict ── */
-.benchmark-verdict {
-  background: #e8f0fe;
-  border-radius: 10px;
-  padding: 12px 14px;
+/* ── Benchmark verdict block ── */
+.benchmark-verdict-block {
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #fff;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
 }
 
-.benchmark-verdict-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
+.benchmark-verdict-block--idle {
+  background: #fafafa;
+  border-color: #eeeeee;
 }
 
-.benchmark-verdict-label {
-  font-size: 0.82rem;
+.bv-header {
+  font-size: 0.78rem;
   font-weight: 700;
+  letter-spacing: 0.07em;
   color: #1a73e8;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-.benchmark-verdict-scores {
+.benchmark-verdict-block--idle .bv-header {
+  color: #c5c8cb;
+}
+
+.bv-section {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 5px;
 }
 
-.benchmark-verdict-score {
-  font-size: 0.82rem;
+.bv-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #80868b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.bv-idle-dash {
+  font-size: 0.85rem;
+  color: #c5c8cb;
+}
+
+.bv-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.85rem;
   color: #5f6368;
 }
 
-.benchmark-verdict-score strong {
+.bv-row--winner {
+  color: #202124;
+  font-weight: 500;
+}
+
+.bv-star {
+  width: 14px;
+  flex-shrink: 0;
+  color: #fbbc04;
+  font-size: 0.85rem;
+}
+
+.bv-model-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.bv-value {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: #5f6368;
+}
+
+.bv-row--winner .bv-value {
   color: #202124;
 }
 
-.benchmark-verdict-text {
-  font-size: 0.88rem;
-  color: #202124;
-  line-height: 1.55;
+.bv-summary {
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: #5f6368;
+  font-style: italic;
+  line-height: 1.5;
+  border-left: 3px solid #e8f0fe;
+  padding-left: 8px;
 }
 
 .benchmark-card--idle {
