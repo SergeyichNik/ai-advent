@@ -247,7 +247,6 @@ app.post("/api/benchmark/judge", async (req, res) => {
           { role: "system", content: "You are an objective LLM evaluator. Respond only with valid JSON, no other text." },
           { role: "user", content: judgePrompt },
         ],
-        response_format: { type: "json_object" },
       });
 
       const { answer: judgeAnswer } = parseThinking(judgeCompletion.choices[0].message.content);

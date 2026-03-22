@@ -69,10 +69,21 @@ export default function BenchmarkView({ settings }) {
         body: JSON.stringify({ task: task.trim(), results, settings }),
       });
       const judgeData = await judgeRes.json();
-      if (!judgeRes.ok || judgeData.error) throw new Error(judgeData.error);
-      setVerdict(judgeData);
-    } catch {
-      // judge failed silently — cards still show their results
+      if (judgeData && !judgeData.error) {
+        setVerdict(judgeData);
+      } else {
+        throw new Error(judgeData?.error || "Judge returned no data");
+      }
+    } catch (err) {
+      console.error("[judge error]", err);
+      // Fallback: compute speed/cost winners client-side
+      const speedWinner = successful.reduce((a, b) => a.metrics.timeMs < b.metrics.timeMs ? a : b);
+      const costWinner  = successful.reduce((a, b) => a.metrics.cost  < b.metrics.cost  ? a : b);
+      setVerdict({
+        scores: {},
+        winners: { speed: speedWinner.model, cost: costWinner.model },
+        summary: "Quality evaluation unavailable.",
+      });
     }
   }
 
