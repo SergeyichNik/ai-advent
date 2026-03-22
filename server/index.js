@@ -195,74 +195,83 @@ async function runBenchmarkModel(task, model, settings) {
   }
 }
 
-app.post("/api/benchmark", async (req, res) => {
+app.post("/api/benchmark/run", async (req, res) => {
   try {
-    const { task, settings = {} } = req.body;
+    const { task, modelId, settings = {} } = req.body;
     if (!task || typeof task !== "string" || task.trim() === "") {
       return res.status(400).json({ error: "task is required and must be a non-empty string" });
     }
+    const model = BENCHMARK_MODELS.find((m) => m.id === modelId);
+    if (!model) return res.status(400).json({ error: `Unknown modelId: ${modelId}` });
 
-    const modelRuns = await Promise.all(
-      BENCHMARK_MODELS.map((m) => runBenchmarkModel(task.trim(), m, settings))
-    );
+    const result = await runBenchmarkModel(task.trim(), model, settings);
+    res.json(result);
+  } catch (err) {
+    console.error("[/api/benchmark/run error]", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
 
-    const successful = modelRuns.filter((r) => !r.error);
-    let verdict = null;
-
-    if (successful.length > 0) {
-      const speedWinner = successful.reduce((a, b) => a.metrics.timeMs < b.metrics.timeMs ? a : b);
-      const costWinner  = successful.reduce((a, b) => a.metrics.cost  < b.metrics.cost  ? a : b);
-
-      try {
-        const answersText = modelRuns
-          .map((r) => r.error
-            ? `### ${r.label} (${r.tier.toUpperCase()})\nERROR: ${r.error}`
-            : `### ${r.label} (${r.tier.toUpperCase()})\n${r.answer}`)
-          .join("\n\n");
-
-        const judgePrompt =
-          `Task: "${task.trim()}"\n\n` +
-          `${answersText}\n\n` +
-          `Score each successful model's answer 1-10 for quality (accuracy, completeness, helpfulness). ` +
-          `Write the summary field in the same language as the task. ` +
-          `Return ONLY valid JSON:\n` +
-          `{"scores":{"deepseek-chat":<n>,"gemini-2.5-flash-lite":<n>,"deepseek-reasoner":<n>},` +
-          `"quality_winner":"<model-id>","summary":"<2-3 sentence conclusion>"}`;
-
-        const judgeCompletion = await deepseek.chat.completions.create({
-          model: "deepseek-reasoner",
-          messages: [
-            { role: "system", content: "You are an objective LLM evaluator. Respond only with valid JSON, no other text." },
-            { role: "user", content: judgePrompt },
-          ],
-          response_format: { type: "json_object" },
-        });
-
-        const { answer: judgeAnswer } = parseThinking(judgeCompletion.choices[0].message.content);
-        const judgeData = JSON.parse(judgeAnswer);
-
-        verdict = {
-          scores: judgeData.scores || {},
-          winners: {
-            quality: judgeData.quality_winner || successful[successful.length - 1].model,
-            speed: speedWinner.model,
-            cost: costWinner.model,
-          },
-          summary: judgeData.summary || "",
-        };
-      } catch (judgeErr) {
-        console.error("[benchmark judge error]", judgeErr);
-        verdict = {
-          scores: {},
-          winners: { speed: speedWinner.model, cost: costWinner.model },
-          summary: "Quality evaluation unavailable.",
-        };
-      }
+app.post("/api/benchmark/judge", async (req, res) => {
+  try {
+    const { task, results = [], settings = {} } = req.body;
+    if (!task || typeof task !== "string" || task.trim() === "") {
+      return res.status(400).json({ error: "task is required" });
     }
 
-    res.json({ results: modelRuns, verdict });
+    const successful = results.filter((r) => !r.error);
+    if (successful.length === 0) return res.status(400).json({ error: "No successful results to judge" });
+
+    const speedWinner = successful.reduce((a, b) => a.metrics.timeMs < b.metrics.timeMs ? a : b);
+    const costWinner  = successful.reduce((a, b) => a.metrics.cost  < b.metrics.cost  ? a : b);
+
+    const answersText = results
+      .map((r) => r.error
+        ? `### ${r.label} (${r.tier.toUpperCase()})\nERROR: ${r.error}`
+        : `### ${r.label} (${r.tier.toUpperCase()})\n${r.answer}`)
+      .join("\n\n");
+
+    const judgePrompt =
+      `Task: "${task.trim()}"\n\n` +
+      `${answersText}\n\n` +
+      `Score each successful model's answer 1-10 for quality (accuracy, completeness, helpfulness). ` +
+      `Write the summary field in the same language as the task. ` +
+      `Return ONLY valid JSON:\n` +
+      `{"scores":{"deepseek-chat":<n>,"gemini-2.5-flash-lite":<n>,"deepseek-reasoner":<n>},` +
+      `"quality_winner":"<model-id>","summary":"<2-3 sentence conclusion>"}`;
+
+    try {
+      const judgeCompletion = await deepseek.chat.completions.create({
+        model: "deepseek-reasoner",
+        messages: [
+          { role: "system", content: "You are an objective LLM evaluator. Respond only with valid JSON, no other text." },
+          { role: "user", content: judgePrompt },
+        ],
+        response_format: { type: "json_object" },
+      });
+
+      const { answer: judgeAnswer } = parseThinking(judgeCompletion.choices[0].message.content);
+      const judgeData = JSON.parse(judgeAnswer);
+
+      res.json({
+        scores: judgeData.scores || {},
+        winners: {
+          quality: judgeData.quality_winner || successful[successful.length - 1].model,
+          speed: speedWinner.model,
+          cost: costWinner.model,
+        },
+        summary: judgeData.summary || "",
+      });
+    } catch (judgeErr) {
+      console.error("[benchmark judge error]", judgeErr);
+      res.json({
+        scores: {},
+        winners: { speed: speedWinner.model, cost: costWinner.model },
+        summary: "Quality evaluation unavailable.",
+      });
+    }
   } catch (err) {
-    console.error("[/api/benchmark error]", err);
+    console.error("[/api/benchmark/judge error]", err);
     res.status(500).json({ error: err.message || "Internal server error" });
   }
 });

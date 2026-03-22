@@ -9,32 +9,70 @@ const IDLE_MODELS = [
 
 export default function BenchmarkView({ settings }) {
   const [task, setTask] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState(null);
+  const [cardStates, setCardStates] = useState({});     // modelId → result | null
+  const [loadingModels, setLoadingModels] = useState(new Set());
   const [verdict, setVerdict] = useState(null);
   const [error, setError] = useState(null);
 
+  const isRunning = loadingModels.size > 0;
+
   async function runBenchmark() {
-    if (!task.trim() || isLoading) return;
-    setIsLoading(true);
-    setResults(null);
+    if (!task.trim() || isRunning) return;
+
+    const collected = {};
+    setCardStates({});
     setVerdict(null);
     setError(null);
+    setLoadingModels(new Set(IDLE_MODELS.map((m) => m.id)));
+
+    const promises = IDLE_MODELS.map(async (m) => {
+      try {
+        const res = await fetch("/api/benchmark/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task: task.trim(), modelId: m.id, settings }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+        collected[m.id] = data;
+        setCardStates((prev) => ({ ...prev, [m.id]: data }));
+      } catch (err) {
+        const errResult = {
+          model: m.id, tier: m.tier, label: m.label,
+          error: err.message,
+          metrics: { timeMs: 0, totalTokens: 0, cost: 0 },
+        };
+        collected[m.id] = errResult;
+        setCardStates((prev) => ({ ...prev, [m.id]: errResult }));
+      } finally {
+        setLoadingModels((prev) => {
+          const next = new Set(prev);
+          next.delete(m.id);
+          return next;
+        });
+      }
+    });
+
+    await Promise.all(promises);
+
+    const results = Object.values(collected);
+    const successful = results.filter((r) => !r.error);
+    if (successful.length === 0) {
+      setError("All models failed.");
+      return;
+    }
 
     try {
-      const res = await fetch("/api/benchmark", {
+      const judgeRes = await fetch("/api/benchmark/judge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task: task.trim(), settings }),
+        body: JSON.stringify({ task: task.trim(), results, settings }),
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
-      setResults(data.results);
-      setVerdict(data.verdict);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+      const judgeData = await judgeRes.json();
+      if (!judgeRes.ok || judgeData.error) throw new Error(judgeData.error);
+      setVerdict(judgeData);
+    } catch {
+      // judge failed silently — cards still show their results
     }
   }
 
@@ -57,32 +95,29 @@ export default function BenchmarkView({ settings }) {
           value={task}
           onChange={(e) => setTask(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={isLoading}
+          disabled={isRunning}
         />
         <button
           className="compare-btn"
           onClick={runBenchmark}
-          disabled={isLoading || !task.trim()}
+          disabled={isRunning || !task.trim()}
         >
-          {isLoading ? "Running…" : "Run Benchmark"}
+          {isRunning ? "Running…" : "Run Benchmark"}
         </button>
       </div>
 
       {error && <div className="compare-error">{error}</div>}
 
       <div className="benchmark-grid">
-        {IDLE_MODELS.map((m) => {
-          const result = results?.find((r) => r.model === m.id) ?? null;
-          return (
-            <BenchmarkCard
-              key={m.id}
-              model={m}
-              result={result}
-              isLoading={isLoading}
-              winners={winners}
-            />
-          );
-        })}
+        {IDLE_MODELS.map((m) => (
+          <BenchmarkCard
+            key={m.id}
+            model={m}
+            result={cardStates[m.id] ?? null}
+            isLoading={loadingModels.has(m.id)}
+            winners={winners}
+          />
+        ))}
       </div>
 
       {verdict && (
