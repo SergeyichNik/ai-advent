@@ -48,11 +48,11 @@ export default function BenchmarkVerdict({ verdict, isJudgeLoading, cardStates, 
             <span className="bv-star">{winners.quality === m.id ? "★" : ""}</span>
             <span className="bv-model-name">{m.label}</span>
             <span className="bv-value">
-              {verdict.scores?.[m.id] !== undefined ? `${verdict.scores[m.id]}/10` : "—"}
+              {verdict?.scores?.[m.id] !== undefined ? `${verdict.scores[m.id]}/10` : "—"}
             </span>
           </div>
         ))}
-        {verdict?.summary && (
+        {verdict?.summary && verdict.summary !== "Quality evaluation unavailable." && (
           <div className="bv-summary">"{verdict.summary}"</div>
         )}
       </Section>
