@@ -131,9 +131,9 @@ app.post("/api/chat", async (req, res) => {
 });
 
 const BENCHMARK_MODELS = [
-  { id: "deepseek-chat",     tier: "weak",   label: "DeepSeek V3",    provider: "deepseek" },
-  { id: "gemini-2.5-flash-lite", tier: "medium", label: "Gemini 2.5 Flash Lite", provider: "gemini" },
-  { id: "deepseek-reasoner", tier: "strong", label: "DeepSeek R1",    provider: "deepseek" },
+  { id: "deepseek-chat",         tier: "weak",   label: "DeepSeek V3",           provider: "deepseek", maxTokens: 8192  },
+  { id: "gemini-2.5-flash-lite", tier: "medium", label: "Gemini 2.5 Flash Lite", provider: "gemini",   maxTokens: 8192  },
+  { id: "deepseek-reasoner",     tier: "strong", label: "DeepSeek R1",           provider: "deepseek", maxTokens: 32768 },
 ];
 
 const BENCHMARK_PRICING = {
@@ -155,11 +155,10 @@ async function runBenchmarkModel(task, model, settings) {
     let rawText, inputTokens, outputTokens;
 
     if (model.provider === "gemini") {
-      const generationConfig = {};
       const geminiModel = genAI.getGenerativeModel({
         model: model.id,
         systemInstruction,
-        generationConfig,
+        generationConfig: { maxOutputTokens: model.maxTokens },
       });
       const result = await geminiModel.startChat({ history: [] }).sendMessage(task);
       rawText = result.response.text();
@@ -170,8 +169,12 @@ async function runBenchmarkModel(task, model, settings) {
       const messages = [];
       if (systemInstruction) messages.push({ role: "system", content: systemInstruction });
       messages.push({ role: "user", content: task });
-      const completion = await deepseek.chat.completions.create({ model: model.id, messages });
-      rawText = completion.choices[0].message.content;
+      const completion = await deepseek.chat.completions.create({
+        model: model.id,
+        messages,
+        max_tokens: model.maxTokens,
+      });
+      rawText = completion.choices[0].message.content || "";
       const usage = completion.usage || {};
       inputTokens = usage.prompt_tokens || 0;
       outputTokens = usage.completion_tokens || 0;
