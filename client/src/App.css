@@ -827,3 +827,19 @@ body {
   color: #202124;
   line-height: 1.55;
 }
+
+.benchmark-card--idle {
+  background: #fafafa;
+  border-color: #eeeeee;
+}
+
+.benchmark-card-idle-text {
+  font-size: 0.82rem;
+  color: #b0b8c1;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+.benchmark-metrics--idle {
+  color: #c5c8cb;
+}

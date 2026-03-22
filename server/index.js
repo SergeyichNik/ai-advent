@@ -224,6 +224,7 @@ app.post("/api/benchmark", async (req, res) => {
           `Task: "${task.trim()}"\n\n` +
           `${answersText}\n\n` +
           `Score each successful model's answer 1-10 for quality (accuracy, completeness, helpfulness). ` +
+          `Write the summary field in the same language as the task. ` +
           `Return ONLY valid JSON:\n` +
           `{"scores":{"deepseek-chat":<n>,"gemini-2.5-flash-lite":<n>,"deepseek-reasoner":<n>},` +
           `"quality_winner":"<model-id>","summary":"<2-3 sentence conclusion>"}`;

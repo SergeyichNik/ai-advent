@@ -13,15 +13,44 @@ function formatCost(cost) {
   return `$${cost.toFixed(2)}`;
 }
 
-export default function BenchmarkCard({ result, winners }) {
+export default function BenchmarkCard({ model, result, isLoading, winners }) {
   const [showThinking, setShowThinking] = useState(false);
+  const { id, tier, label } = model;
 
-  if (!result) return null;
+  if (!result) {
+    return (
+      <div className="benchmark-card benchmark-card--idle">
+        <div className="benchmark-card-header">
+          <div className="benchmark-card-title">
+            <span className={`benchmark-tier benchmark-tier--${tier}`}>{tier.toUpperCase()}</span>
+            <a
+              className="benchmark-card-model"
+              href={MODEL_LINKS[id]}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {label} ↗
+            </a>
+          </div>
+        </div>
+        {isLoading ? (
+          <div className="loading-dots"><span /><span /><span /></div>
+        ) : (
+          <p className="benchmark-card-idle-text">Run benchmark to see results</p>
+        )}
+        <div className="benchmark-metrics benchmark-metrics--idle">
+          <span>⏱ —</span>
+          <span>🪙 —</span>
+          <span>—</span>
+        </div>
+      </div>
+    );
+  }
 
-  const { model, tier, label, answer, thinking, error, metrics } = result;
-  const isQualityWinner = winners?.quality === model;
-  const isSpeedWinner   = winners?.speed   === model;
-  const isCostWinner    = winners?.cost    === model;
+  const { answer, thinking, error, metrics } = result;
+  const isQualityWinner = winners?.quality === id;
+  const isSpeedWinner   = winners?.speed   === id;
+  const isCostWinner    = winners?.cost    === id;
 
   return (
     <div className={`benchmark-card${error ? " benchmark-card--error" : ""}`}>
@@ -30,7 +59,7 @@ export default function BenchmarkCard({ result, winners }) {
           <span className={`benchmark-tier benchmark-tier--${tier}`}>{tier.toUpperCase()}</span>
           <a
             className="benchmark-card-model"
-            href={MODEL_LINKS[model]}
+            href={MODEL_LINKS[id]}
             target="_blank"
             rel="noopener noreferrer"
           >

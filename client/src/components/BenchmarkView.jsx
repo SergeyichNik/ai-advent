@@ -1,6 +1,12 @@
 import { useState } from "react";
 import BenchmarkCard from "./BenchmarkCard.jsx";
 
+const IDLE_MODELS = [
+  { id: "deepseek-chat",         tier: "weak",   label: "DeepSeek V3" },
+  { id: "gemini-2.5-flash-lite", tier: "medium", label: "Gemini 2.5 Flash Lite" },
+  { id: "deepseek-reasoner",     tier: "strong", label: "DeepSeek R1" },
+];
+
 export default function BenchmarkView({ settings }) {
   const [task, setTask] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +53,7 @@ export default function BenchmarkView({ settings }) {
         <textarea
           className="compare-task-input"
           rows={3}
-          placeholder="Enter a task to benchmark across 3 DeepSeek models... (Ctrl+Enter to run)"
+          placeholder="Enter a task to benchmark across 3 models... (Ctrl+Enter to run)"
           value={task}
           onChange={(e) => setTask(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -62,43 +68,39 @@ export default function BenchmarkView({ settings }) {
         </button>
       </div>
 
-      {isLoading && (
-        <div className="compare-loading">
-          <div className="loading-dots">
-            <span /><span /><span />
-          </div>
-          Running across 3 models + judge…
-        </div>
-      )}
-
       {error && <div className="compare-error">{error}</div>}
 
-      {results && (
-        <>
-          <div className="benchmark-grid">
-            {results.map((r) => (
-              <BenchmarkCard key={r.model} result={r} winners={winners} />
-            ))}
-          </div>
+      <div className="benchmark-grid">
+        {IDLE_MODELS.map((m) => {
+          const result = results?.find((r) => r.model === m.id) ?? null;
+          return (
+            <BenchmarkCard
+              key={m.id}
+              model={m}
+              result={result}
+              isLoading={isLoading}
+              winners={winners}
+            />
+          );
+        })}
+      </div>
 
-          {verdict && (
-            <div className="benchmark-verdict">
-              <div className="benchmark-verdict-header">
-                <span className="benchmark-verdict-label">Verdict</span>
-                <div className="benchmark-verdict-scores">
-                  {results.map((r) =>
-                    verdict.scores?.[r.model] !== undefined ? (
-                      <span key={r.model} className="benchmark-verdict-score">
-                        {r.label}: <strong>{verdict.scores[r.model]}/10</strong>
-                      </span>
-                    ) : null
-                  )}
-                </div>
-              </div>
-              <div className="benchmark-verdict-text">{verdict.summary}</div>
+      {verdict && (
+        <div className="benchmark-verdict">
+          <div className="benchmark-verdict-header">
+            <span className="benchmark-verdict-label">Verdict</span>
+            <div className="benchmark-verdict-scores">
+              {IDLE_MODELS.map((m) =>
+                verdict.scores?.[m.id] !== undefined ? (
+                  <span key={m.id} className="benchmark-verdict-score">
+                    {m.label}: <strong>{verdict.scores[m.id]}/10</strong>
+                  </span>
+                ) : null
+              )}
             </div>
-          )}
-        </>
+          </div>
+          <div className="benchmark-verdict-text">{verdict.summary}</div>
+        </div>
       )}
     </div>
   );
