@@ -3,6 +3,7 @@ import MessageList from "./components/MessageList.jsx";
 import ChatInput from "./components/ChatInput.jsx";
 import SettingsPanel from "./components/SettingsPanel.jsx";
 import CompareView from "./components/CompareView.jsx";
+import BenchmarkView from "./components/BenchmarkView.jsx";
 
 export default function App() {
   const [messages, setMessages] = useState([]);
@@ -95,6 +96,12 @@ export default function App() {
           >
             Compare
           </button>
+          <button
+            className={`header-tab${view === "benchmark" ? " header-tab--active" : ""}`}
+            onClick={() => setView("benchmark")}
+          >
+            Benchmark
+          </button>
         </div>
         <button
           className="settings-toggle"
@@ -111,8 +118,10 @@ export default function App() {
           <MessageList messages={messages} isLoading={isLoading} />
           <ChatInput onSend={sendMessage} isLoading={isLoading} />
         </>
-      ) : (
+      ) : view === "compare" ? (
         <CompareView settings={settings} />
+      ) : (
+        <BenchmarkView settings={settings} />
       )}
     </div>
   );

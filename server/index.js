@@ -130,6 +130,142 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+const BENCHMARK_MODELS = [
+  { id: "deepseek-chat",     tier: "weak",   label: "DeepSeek V3",    provider: "deepseek" },
+  { id: "gemini-2.5-flash-lite", tier: "medium", label: "Gemini 2.5 Flash Lite", provider: "gemini" },
+  { id: "deepseek-reasoner", tier: "strong", label: "DeepSeek R1",    provider: "deepseek" },
+];
+
+const BENCHMARK_PRICING = {
+  "deepseek-chat":         { input: 0.27, output: 1.10 },
+  "deepseek-reasoner":     { input: 0.14, output: 2.19 },
+  "gemini-2.5-flash-lite": { input: 0.10, output: 0.40 },
+};
+
+function parseThinking(text) {
+  const match = text.match(/^<think>([\s\S]*?)<\/think>\s*/);
+  if (match) return { thinking: match[1].trim(), answer: text.slice(match[0].length).trim() };
+  return { thinking: null, answer: text };
+}
+
+async function runBenchmarkModel(task, model, settings) {
+  const systemInstruction = buildSystemInstruction(null, settings, null);
+  const start = Date.now();
+  try {
+    let rawText, inputTokens, outputTokens;
+
+    if (model.provider === "gemini") {
+      const generationConfig = {};
+      const geminiModel = genAI.getGenerativeModel({
+        model: model.id,
+        systemInstruction,
+        generationConfig,
+      });
+      const result = await geminiModel.startChat({ history: [] }).sendMessage(task);
+      rawText = result.response.text();
+      const usage = result.response.usageMetadata || {};
+      inputTokens = usage.promptTokenCount || 0;
+      outputTokens = usage.candidatesTokenCount || 0;
+    } else {
+      const messages = [];
+      if (systemInstruction) messages.push({ role: "system", content: systemInstruction });
+      messages.push({ role: "user", content: task });
+      const completion = await deepseek.chat.completions.create({ model: model.id, messages });
+      rawText = completion.choices[0].message.content;
+      const usage = completion.usage || {};
+      inputTokens = usage.prompt_tokens || 0;
+      outputTokens = usage.completion_tokens || 0;
+    }
+
+    const timeMs = Date.now() - start;
+    const { thinking, answer } = parseThinking(rawText);
+    const pricing = BENCHMARK_PRICING[model.id] || { input: 0, output: 0 };
+    const cost = (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+    return {
+      model: model.id, tier: model.tier, label: model.label,
+      answer, thinking,
+      metrics: { timeMs, totalTokens: inputTokens + outputTokens, cost },
+    };
+  } catch (err) {
+    return {
+      model: model.id, tier: model.tier, label: model.label,
+      error: err.message || "Request failed",
+      metrics: { timeMs: Date.now() - start, totalTokens: 0, cost: 0 },
+    };
+  }
+}
+
+app.post("/api/benchmark", async (req, res) => {
+  try {
+    const { task, settings = {} } = req.body;
+    if (!task || typeof task !== "string" || task.trim() === "") {
+      return res.status(400).json({ error: "task is required and must be a non-empty string" });
+    }
+
+    const modelRuns = await Promise.all(
+      BENCHMARK_MODELS.map((m) => runBenchmarkModel(task.trim(), m, settings))
+    );
+
+    const successful = modelRuns.filter((r) => !r.error);
+    let verdict = null;
+
+    if (successful.length > 0) {
+      const speedWinner = successful.reduce((a, b) => a.metrics.timeMs < b.metrics.timeMs ? a : b);
+      const costWinner  = successful.reduce((a, b) => a.metrics.cost  < b.metrics.cost  ? a : b);
+
+      try {
+        const answersText = modelRuns
+          .map((r) => r.error
+            ? `### ${r.label} (${r.tier.toUpperCase()})\nERROR: ${r.error}`
+            : `### ${r.label} (${r.tier.toUpperCase()})\n${r.answer}`)
+          .join("\n\n");
+
+        const judgePrompt =
+          `Task: "${task.trim()}"\n\n` +
+          `${answersText}\n\n` +
+          `Score each successful model's answer 1-10 for quality (accuracy, completeness, helpfulness). ` +
+          `Return ONLY valid JSON:\n` +
+          `{"scores":{"deepseek-chat":<n>,"gemini-2.5-flash-lite":<n>,"deepseek-reasoner":<n>},` +
+          `"quality_winner":"<model-id>","summary":"<2-3 sentence conclusion>"}`;
+
+        const judgeCompletion = await deepseek.chat.completions.create({
+          model: "deepseek-reasoner",
+          messages: [
+            { role: "system", content: "You are an objective LLM evaluator. Respond only with valid JSON, no other text." },
+            { role: "user", content: judgePrompt },
+          ],
+          response_format: { type: "json_object" },
+        });
+
+        const { answer: judgeAnswer } = parseThinking(judgeCompletion.choices[0].message.content);
+        const judgeData = JSON.parse(judgeAnswer);
+
+        verdict = {
+          scores: judgeData.scores || {},
+          winners: {
+            quality: judgeData.quality_winner || successful[successful.length - 1].model,
+            speed: speedWinner.model,
+            cost: costWinner.model,
+          },
+          summary: judgeData.summary || "",
+        };
+      } catch (judgeErr) {
+        console.error("[benchmark judge error]", judgeErr);
+        verdict = {
+          scores: {},
+          winners: { speed: speedWinner.model, cost: costWinner.model },
+          summary: "Quality evaluation unavailable.",
+        };
+      }
+    }
+
+    res.json({ results: modelRuns, verdict });
+  } catch (err) {
+    console.error("[/api/benchmark error]", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
+
 app.post("/api/compare", async (req, res) => {
   try {
     const { task, settings = {} } = req.body;
